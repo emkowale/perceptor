@@ -21,14 +21,12 @@ add_action('admin_menu', function () {
 });
 
 /** Placeholder pages (we will split into small files next) */
-function perceptor_dashboard_page() {
-  echo "<div class='wrap'><h1>Perceptor Dashboard</h1><p>Coming soon.</p></div>";
-}
 function perceptor_preview_page() {
   echo "<div class='wrap'><h1>Perceptor — Live Preview</h1><p>Waiting for stream…</p></div>";
 }
 
 require __DIR__."/settings.php";
+require __DIR__."/dashboard.php";
 // Next steps (each ≤100 lines):
 // require __DIR__.'/updater.php';
 // require __DIR__.'/dashboard.php';
