@@ -1,0 +1,8 @@
+{
+  "camera1": { "ip": "10.255.252.77" },
+  "camera2": { "ip": "" },
+  "camera3": { "ip": "" },
+  "camera4": { "ip": "" },
+  "camera5": { "ip": "" },
+  "camera6": { "ip": "" }
+}
