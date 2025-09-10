@@ -27,10 +27,8 @@ function perceptor_dashboard_page() {
 function perceptor_preview_page() {
   echo "<div class='wrap'><h1>Perceptor — Live Preview</h1><p>Waiting for stream…</p></div>";
 }
-function perceptor_settings_page() {
-  echo "<div class='wrap'><h1>Perceptor Settings</h1><p>Configure endpoint and secret here.</p></div>";
-}
 
+require __DIR__."/settings.php";
 // Next steps (each ≤100 lines):
 // require __DIR__.'/updater.php';
 // require __DIR__.'/dashboard.php';
