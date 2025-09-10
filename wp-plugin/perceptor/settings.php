@@ -45,3 +45,4 @@ function perceptor_settings_page(){
   </div>
   <?php
 }
+
