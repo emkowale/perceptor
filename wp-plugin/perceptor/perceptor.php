@@ -37,3 +37,5 @@ function perceptor_settings_page() {
 // require __DIR__.'/preview.php';
 // require __DIR__.'/preview-api.php';
 // require __DIR__.'/settings.php';
+
+require __DIR__.'/updater.php';
