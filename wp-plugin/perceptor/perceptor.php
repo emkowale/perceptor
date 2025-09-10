@@ -35,3 +35,5 @@ require __DIR__."/dashboard.php";
 require __DIR__.'/updater.php';
 
 require __DIR__.'/preview-api.php';
+
+require __DIR__.'/queue.php';
