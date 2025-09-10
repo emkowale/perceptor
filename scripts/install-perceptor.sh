@@ -33,6 +33,11 @@ mkdir -p "$APP_DIR"
 rsync -a --delete "$SRC"/ "$APP_DIR"/
 mkdir -p "$APP_DIR/captures" "$APP_DIR/public" "$APP_DIR/assets" "$APP_DIR/config"
 
+# seed a blank logo if missing to avoid 404s
+if [ ! -s "$APP_DIR/assets/logo.png" ]; then
+  install -m 0644 /dev/null "$APP_DIR/assets/logo.png" || true
+fi
+
 if [ ! -s "$APP_DIR/config/cameras.json" ]; then
   cat > "$APP_DIR/config/cameras.json" <<'JSON'
 {

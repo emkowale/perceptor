@@ -55,6 +55,7 @@ $last = $_GET['ok'] ?? null;
         <select name="crop">
           <option value="soft" selected>Soft (trim ~40px top/bottom)</option>
           <option value="none">None</option>
+          <option value="delogo">Delogo (no crop)</option>
         </select>
       </div>
       <div style="grid-column:1 / -1"><button class="primary">Capture Clip</button></div>
