@@ -1,3 +1,6 @@
-/captures/
-/config/cameras.json
-*.log
+.git/
+dist/
+*.zip
+vendor/*/examples/
+node_modules/
+.DS_Store
