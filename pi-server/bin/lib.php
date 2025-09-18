@@ -10,17 +10,26 @@ function env_load(string $path='/etc/perceptor.env'): void {
   }
 }
 
-/** POST a file to WP with HMAC headers */
+/** POST a file to WP — send fields in multipart body (secret/camera/duration/sha256) and keep headers too */
 function wp_post_file(
   string $url, string $secret, array $payload,
   string $field, string $file, string $mime
 ): array {
-  $ts = time();
-  $p  = json_encode($payload + ['ts' => $ts], JSON_UNESCAPED_SLASHES);
+  $ts  = time();
+  $p   = json_encode($payload + ['ts' => $ts], JSON_UNESCAPED_SLASHES);
   $sig = hash_hmac('sha256', $p, $secret);
 
+  $post = [
+    $field     => new CURLFile($file, $mime, basename($file)),
+    'secret'   => $secret,
+    'payload'  => $p,
+    'sig'      => $sig,
+    'camera'   => (string)($payload['camera']   ?? ''),
+    'duration' => (string)($payload['duration'] ?? 0),
+    'sha256'   => (string)($payload['sha256']   ?? ''),
+  ];
+
   $ch = curl_init($url);
-  $post = [$field => new CURLFile($file, $mime, basename($file))];
   curl_setopt_array($ch, [
     CURLOPT_POST           => true,
     CURLOPT_POSTFIELDS     => $post,
@@ -31,7 +40,7 @@ function wp_post_file(
     ],
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_CONNECTTIMEOUT => 5,
-    CURLOPT_TIMEOUT        => 60,
+    CURLOPT_TIMEOUT        => 60
   ]);
   $resp = curl_exec($ch);
   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);

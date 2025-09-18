@@ -1,0 +1,121 @@
+<?php declare(strict_types=1);
+/**
+ * Perceptor Pi worker: poll WP job queue and run captures.
+ * Env in /etc/perceptor.env:
+ *   WP_ENDPOINT=https://thebeartraxs.com/wp-json/perceptor/v1/upload
+ *   WP_SECRET=...
+ */
+require __DIR__ . '/lib.php'; env_load();
+
+$cfg = json_decode(@file_get_contents(__DIR__ . '/../config/cameras.json'), true) ?? [];
+$EP  = getenv('WP_ENDPOINT') ?: '';
+$SEC = getenv('WP_SECRET') ?: '';
+if (!$EP || !$SEC) { fwrite(STDERR, "Missing WP_ENDPOINT or WP_SECRET\n"); exit(1); }
+
+$apiBase = preg_replace('#/upload$#', '', $EP); // -> .../perceptor/v1
+$jobNext = $apiBase . '/job_next';              // polling endpoint
+$upload  = $EP;                                 // upload clips endpoint
+
+function hmac_sig(array $payload, string $secret): string {
+  return hash_hmac('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES), $secret);
+}
+function post_json(string $url, array $headers, array $body): array {
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+    CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => $headers, CURLOPT_POSTFIELDS => json_encode($body),
+    CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 10
+  ]);
+  $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch);
+  return [$code, $resp, $err];
+}
+
+// small helper to log to stdout
+function logit(string $m){
+  echo '['.date('Y-m-d H:i:s').'] '.$m."\n";
+}
+
+logit("Worker starting; polling $jobNext");
+
+while (true) {
+  // poll next job
+  $ts = time(); $payload = ['ts' => $ts]; $sig = hmac_sig($payload, $SEC);
+  [$code, $resp, $err] = post_json($jobNext, [
+    'Content-Type: application/json',
+    'x-perceptor-date: ' . $ts,
+    'x-perceptor-signature: ' . $sig
+  ], $payload);
+
+  if ($err) {
+    logit("HTTP error polling job_next: $err");
+    sleep(2); continue;
+  }
+
+  if ($code !== 200) {
+    $body = $resp ?: '';
+    logit("Polling returned HTTP $code; body: " . substr($body,0,300));
+    sleep(2); continue;
+  }
+
+  $data = json_decode($resp ?? '[]', true);
+  $job = $data['job'] ?? null;
+  if (!$job) { usleep(300000); continue; }
+
+  if (($job['type'] ?? '') !== 'capture') {
+    logit("Got job {$job['id']} type={$job['type']}; skipping");
+    usleep(300000); continue;
+  }
+
+  // map camera
+  $camRaw = (string)($job['camera'] ?? '');
+  $dur = max(1, intval($job['duration'] ?? 5));
+  $camKey = null;
+  if (is_numeric($camRaw) && isset($cfg["camera{$camRaw}"])) {
+    $camKey = "camera{$camRaw}";
+  } elseif (isset($cfg[$camRaw])) {
+    $camKey = $camRaw;
+  }
+
+  if (!$camKey) {
+    logit("Job {$job['id']}: camera '{$camRaw}' not defined in cameras.json; skipping");
+    usleep(300000); continue;
+  }
+
+  $ip = $cfg[$camKey]['ip'] ?? '';
+  if (!$ip) {
+    logit("Job {$job['id']}: camera '{$camKey}' has no ip set; skipping");
+    usleep(300000); continue;
+  }
+
+  // Always use username/password for RTSP
+  $rtsp = "rtsp://username:password@$ip:554/stream1";
+
+  // Clean filename
+  $safeCamName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $camKey);
+  $outDir = realpath(__DIR__ . '/..') . '/captures'; @mkdir($outDir, 0775, true);
+  $dst = sprintf('%s/%s_%ss_%s.mp4', $outDir, $safeCamName, $dur, date('Ymd_His'));
+  $log = $outDir . '/ffmpeg.log'; @touch($log);
+  $vf  = '-vf ' . escapeshellarg('crop=trunc(iw/2)*2:trunc((ih-160)/2)*2:0:80');
+
+  logit("Job {$job['id']}: starting capture cam={$camKey} ip={$ip} dur={$dur}s -> $dst");
+
+  $cmd = sprintf('/usr/bin/ffmpeg -hide_banner -y -loglevel error -rtsp_transport tcp -i %s -t %d -an %s -pix_fmt yuv420p -c:v libx264 -preset veryfast -crf 22 -movflags +faststart %s 2>> %s',
+    escapeshellarg($rtsp), $dur, $vf, escapeshellarg($dst), escapeshellarg($log));
+  exec($cmd, $o, $rc);
+
+  if ($rc !== 0 || !file_exists($dst) || filesize($dst) < 1024) {
+    logit("Job {$job['id']}: ffmpeg failed (rc=$rc). Check $log");
+    usleep(500000); continue;
+  }
+
+  // upload result
+  [$uc, $ur, $ue] = wp_post_file($upload, $SEC, [
+    'camera'   => $camRaw,
+    'duration' => $dur,
+    'captured' => date('Y-m-d H:i:s'),
+    'sha256'   => hash_file('sha256', $dst)
+  ], 'file', $dst, 'video/mp4');
+
+  logit("Job {$job['id']} uploaded: HTTP $uc; response: " . substr((string)$ur,0,200));
+  usleep(300000);
+}
