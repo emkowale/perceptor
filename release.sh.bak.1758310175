@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PLUGIN_FILE="${PLUGIN_FILE:-wp-plugin/perceptor/perceptor.php}"
 BUMP="${1:-patch}"
 PLUGIN_FILE="${PLUGIN_FILE:-$(grep -ril '^\s*\*\s*Plugin Name:' -- */*.php ./*.php | head -n1)}"
 [[ -n "${PLUGIN_FILE:-}" && -f "$PLUGIN_FILE" ]] || { echo "■ Plugin file not found"; exit 1; }
