@@ -3,54 +3,41 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-$__base = plugin_dir_path(__FILE__);
+$base = plugin_dir_path(__FILE__);
 if (!defined('PERCEPTOR_LEGACY_DIR')) {
-  define('PERCEPTOR_LEGACY_DIR', rtrim($__base, "/\\") . '/perceptor-legacy');
+  define('PERCEPTOR_LEGACY_DIR', rtrim($base, "/\\") . '/perceptor-legacy');
 }
 
-/** Renderers that load legacy pages */
-function perceptor_dashboard_page() {
-  $f = PERCEPTOR_LEGACY_DIR . '/dashboard.php';
-  if (is_readable($f)) { include $f; return; }
-  printf('<div class="error"><p>Legacy dashboard missing at: <code>%s</code></p></div>', esc_html($f));
-}
-function perceptor_settings_page() {
-  $f = PERCEPTOR_LEGACY_DIR . '/settings.php';
-  if (is_readable($f)) { include $f; return; }
-  printf('<div class="error"><p>Legacy settings missing at: <code>%s</code></p></div>', esc_html($f));
-}
-function perceptor_preview_page() {
-  $f = PERCEPTOR_LEGACY_DIR . '/preview.php';
-  if (is_readable($f)) { include $f; return; }
-  printf('<div class="error"><p>Legacy preview missing at: <code>%s</code></p></div>', esc_html($f));
+/** Load legacy pages (they define perceptor_*_page functions) */
+foreach (['dashboard.php','settings.php','preview.php'] as $f) {
+  $p = PERCEPTOR_LEGACY_DIR . '/' . $f;
+  if (is_readable($p)) require_once $p;
 }
 
-/** Enqueue legacy admin JS/CSS on Perceptor pages only */
+/** Load legacy AJAX registrations (if present) */
+$ajax = PERCEPTOR_LEGACY_DIR . '/ajax.php';
+if (is_readable($ajax)) require_once $ajax;
+
+/** Enqueue legacy admin assets on Perceptor screens */
 add_action('admin_enqueue_scripts', function($hook){
   if (strpos($hook, 'perceptor') === false) return;
-  $js_path  = PERCEPTOR_LEGACY_DIR . '/perceptor-admin.js';
-  $css_path = PERCEPTOR_LEGACY_DIR . '/perceptor-admin.css';
-  if (is_readable($js_path)) {
-    wp_enqueue_script('perceptor-legacy-admin',
+  $js  = PERCEPTOR_LEGACY_DIR . '/perceptor-admin.js';
+  $css = PERCEPTOR_LEGACY_DIR . '/perceptor-admin.css';
+  if (is_readable($js)) {
+    wp_enqueue_script(
+      'perceptor-legacy-admin',
       plugins_url('perceptor-legacy/perceptor-admin.js', __FILE__),
-      ['jquery'], defined('PERCEPTOR_VERSION')?PERCEPTOR_VERSION:'0.0.0', true);
+      ['jquery'],
+      defined('PERCEPTOR_VERSION') ? PERCEPTOR_VERSION : '0.0.0',
+      true
+    );
   }
-  if (is_readable($css_path)) {
-    wp_enqueue_style('perceptor-legacy-admin',
+  if (is_readable($css)) {
+    wp_enqueue_style(
+      'perceptor-legacy-admin',
       plugins_url('perceptor-legacy/perceptor-admin.css', __FILE__),
-      [], defined('PERCEPTOR_VERSION')?PERCEPTOR_VERSION:'0.0.0');
+      [],
+      defined('PERCEPTOR_VERSION') ? PERCEPTOR_VERSION : '0.0.0'
+    );
   }
 });
-
-/** Helper to include a legacy ajax file and exit */
-function perceptor_legacy_ajax_include(string $file): void {
-  $path = PERCEPTOR_LEGACY_DIR . '/' . ltrim($file, '/');
-  if (!is_readable($path)) wp_send_json_error(['ok'=>false,'error'=>'missing '.$file,'path'=>$path], 404);
-  include $path; exit;
-}
-
-/** AJAX bindings → legacy handlers */
-add_action('wp_ajax_perceptor_status',  function(){ perceptor_legacy_ajax_include('ajax-status.php'); });
-add_action('wp_ajax_perceptor_capture', function(){ perceptor_legacy_ajax_include('ajax-capture.php'); });
-add_action('wp_ajax_perceptor_recent',  function(){ perceptor_legacy_ajax_include('ajax-recent.php'); });
-add_action('wp_ajax_perceptor_ping',    function(){ perceptor_legacy_ajax_include('ajax-ping.php'); });
