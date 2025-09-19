@@ -10,6 +10,9 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
+require_once __DIR__ . '/includes/db.php';
+register_activation_hook(__FILE__, 'perceptor_install_db');
+
 define('PERCEPTOR_VERSION', '0.1.2');
 define('PERCEPTOR_MENU', 'perceptor-root');
 
@@ -34,9 +37,7 @@ require __DIR__."/dashboard.php";
 // require __DIR__.'/settings.php';
 
 require __DIR__.'/updater.php';
-
 require __DIR__.'/preview-api.php';
-
 require __DIR__.'/queue.php';
 
 // Load GitHub updater
