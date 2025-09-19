@@ -4,3 +4,25 @@ dist/
 vendor/*/examples/
 node_modules/
 .DS_Store
+
+# --- ccpi runtime (do not version) ---
+/captures/
+/hls/
+/config/
+/logs/
+
+# --- pi-server runtime (do not version) ---
+/pi-server/captures/
+/pi-server/hls/
+/pi-server/previews/
+
+# --- ccpi runtime (do not version) ---
+/captures/
+/hls/
+/config/
+/logs/
+
+# --- pi-server runtime (do not version) ---
+/pi-server/captures/
+/pi-server/hls/
+/pi-server/previews/
