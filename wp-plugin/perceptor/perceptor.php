@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Perceptor
  * Description: BearTrax Perceptor — dashboard, live preview, and settings.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Update URI: github.com/emkowale/perceptor
  * Author: Eric Kowalewski
  * Requires PHP: 8.3
@@ -10,7 +10,7 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-define('PERCEPTOR_VERSION', '0.1.0');
+define('PERCEPTOR_VERSION', '0.1.1');
 define('PERCEPTOR_MENU', 'perceptor-root');
 
 /** Admin menu: Dashboard, Live Preview, Settings */
