@@ -1,14 +1,10 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/status_lib.php';
-
 $secret = "L0vebug1999!"; // replace with your actual secret
 $url    = "https://thebeartraxs.com/wp-json/perceptor/v1/ping";
 
 while (true) {
-    perceptor_status_tick(60); // every 60s, posts camera state to WP
-
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
