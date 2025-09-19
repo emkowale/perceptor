@@ -1,16 +1,21 @@
 name: Release
-on: { push: { tags: ['v*'] } }
-permissions: { contents: write }
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build plugin zip
+      - name: Build WP plugin zip (plugin-only)
         run: |
-          DIR="$(basename "$GITHUB_WORKSPACE")"
-          mkdir -p dist "$DIR"
-          rsync -a --delete --exclude ".git" --exclude ".github" --exclude "dist" --exclude "*.zip" ./ "./$DIR/"
-          (cd "$DIR" && zip -r "../dist/${DIR}-${GITHUB_REF_NAME}.zip" . >/dev/null)
-      - uses: softprops/action-gh-release@v2
-        with: { files: dist/*.zip }
+          cd wp-plugin
+          test -d perceptor || { echo "perceptor/ missing"; exit 1; }
+          mkdir -p ../dist
+          (cd perceptor && zip -r "../../dist/perceptor-${GITHUB_REF_NAME}.zip" . >/dev/null)
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
